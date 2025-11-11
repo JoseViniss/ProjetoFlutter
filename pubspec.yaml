@@ -1,0 +1,41 @@
+name: pet_center
+description: AdopetMatch - Tinder de adoção de cães (trabalho faculdade)
+publish_to: "none"
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  
+ 
+  http: ^1.1.0
+  sqflite: ^2.3.0
+  path_provider: ^2.0.11
+  path: ^1.8.2
+  provider: ^6.0.5
+  flutter_slidable: ^2.0.0
+  flutter_swiper_null_safety: ^1.0.2
+  
+  flutter_map: ^6.1.0
+  
+  latlong2: ^0.9.1          
+  geolocator: ^10.1.0
+  permission_handler: ^11.3.0
+  pdf: ^3.11.0
+  printing: ^5.10.0
+  excel: ^4.0.0
+  image_picker: ^1.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+
+
+flutter:
+  uses-material-design: true   
+  assets:
+    - assets/images/
