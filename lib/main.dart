@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
 
 import 'package:pet_center/screens/login_screen.dart'; 
+import 'package:pet_center/providers/auth_provider.dart';
+import 'package:pet_center/services/db_service.dart';
+import 'package:pet_center/screens/main_navigation_screen.dart';
+import 'package:provider/provider.dart';
+/* import 'package:pet_center/screens/swipe_screen.dart';
+import 'package:pet_center/screens/dashboard_screen.dart';
+import 'package:pet_center/screens/favorites_screen.dart';
+import 'package:pet_center/screens/location_screen.dart';
+import 'package:pet_center/screens/login_screen.dart';
+import 'package:pet_center/screens/register_dog_screen.dart'; */
 
 void main() {
   runApp(const MyApp());
@@ -11,41 +21,49 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-   
-    final Color primaryOrange = const Color(0xFFF1871D);
-
-    return MaterialApp(
-      title: 'AdopetMatch',
-      debugShowCheckedModeBanner: false,
+    return MultiProvider(
+      providers: [
+        Provider<DBService>(
+          create: (_) => DBService(),
+        ),
       
-      
-      theme: ThemeData(
-        primaryColor: primaryOrange,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: primaryOrange,
-          primary: primaryOrange, 
-          secondary: primaryOrange,
+        ChangeNotifierProvider<AuthProvider>(
+          create: (ctx) => AuthProvider(
+            dbService: ctx.read<DBService>(),
+          ),
         ),
-        
-        
-        appBarTheme: AppBarTheme(
-          backgroundColor: primaryOrange,
-          foregroundColor: Colors.white, 
-          centerTitle: true,
-          elevation: 0,
+      ],
+      child: MaterialApp(
+        title: 'AdopetMatch',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
-       
+        home: const AuthWrapper(),
+        routes: {
+          '/home': (ctx) => const MainNavigationScreen(),
+          '/login': (ctx) => const LoginScreen(),
+        },
         
-       
-        bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          selectedItemColor: primaryOrange,
-          unselectedItemColor: Colors.grey,
-          backgroundColor: Colors.white,
-        ),
-        
-        useMaterial3: true,
+        debugShowCheckedModeBanner: false,
       ),
-      home: const LoginScreen(),
+    );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, auth, child) {
+        if (auth.isAuthenticated) {
+          return const MainNavigationScreen();
+        } else {
+          return const LoginScreen();
+        }
+      },
     );
   }
 }

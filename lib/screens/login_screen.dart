@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'package:pet_center/screens/main_navigation_screen.dart'; 
+//import 'package:pet_center/screens/main_navigation_screen.dart';
+import 'package:provider/provider.dart'; 
+import 'package:pet_center/providers/auth_provider.dart'; 
+import 'package:pet_center/screens/register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,20 +19,52 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController passwordController = TextEditingController();
 
   bool obscurePassword = true;
-
+  bool _isLoading = false;
   final Color primaryAppColor = const Color(0xFFF1871D);
 
-  void _signIn() {
-  
-    if (_formKey.currentState?.validate() ?? false) {
-      
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => const MainNavigationScreen(),
-        ),
+  Future<void> _signIn() async { 
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+    setState(() => _isLoading = true);
+
+    // 2. Chame o "Gerente" (AuthProvider)
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    try {
+      // 3. Tente fazer o login
+      final success = await authProvider.login(
+        emailController.text,
+        passwordController.text,
       );
 
-      
+      // 4. Se não der certo, mostre o erro
+      if (!success && mounted) { // 'mounted' é uma checagem de segurança
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('E-mail ou senha inválidos.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      // Se der certo (success == true), o AuthWrapper no main.dart
+      // vai cuidar da navegação sozinho. Não precisamos fazer mais nada.
+
+    } catch (e) {
+      // 5. Se der um erro inesperado
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao fazer login: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+    
+    // 6. Pare o loading (se o login falhou)
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -204,7 +239,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         elevation: 0,
                       ),
                       onPressed: _signIn,
-                      child: const Text(
+                      child: _isLoading // <--- ADICIONE ESTA LÓGICA
+                        ? const CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 3,
+                          )
+                      : const Text(
                         "Entrar",
                         style: TextStyle(
                           fontSize: 18,
@@ -228,9 +268,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(width: 6),
                       GestureDetector(
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text("Link 'Cadastre-se' clicado!")),
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const RegisterScreen()),
                           );
                         },
                         child: Text(

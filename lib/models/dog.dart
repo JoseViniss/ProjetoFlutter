@@ -12,9 +12,15 @@ class Dog {
   String healthStatus; // Ex: "Saudável", "Tratando doença de pele"
   String vaccinationStatus; // Ex: "Vacinado", "Pendente"
   bool isCastrated; // Castrado?
+  double? latitude;
+  double? longitude;
+  final int userId;
 
   Dog({
     this.id,
+    this.latitude,
+    this.longitude,
+    required this.userId,
     required this.name,
     required this.photoUrl,
     required this.breed,
@@ -33,6 +39,9 @@ class Dog {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'longitude': longitude,
+      'latitude': latitude,
+      'userId': userId,
       'name': name,
       'photoUrl': photoUrl,
       'breed': breed,
@@ -52,6 +61,9 @@ class Dog {
   factory Dog.fromMap(Map<String, dynamic> map) {
     return Dog(
       id: map['id'],
+      longitude: map['longitude'] as double?,
+      latitude: map['latitude'] as double?,
+      userId: map['userId'] as int,
       name: map['name'],
       photoUrl: map['photoUrl'],
       breed: map['breed'],

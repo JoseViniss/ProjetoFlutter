@@ -3,6 +3,8 @@ import '../services/db_service.dart';
 import '../models/dog.dart';
 import '../widgets/dog_card.dart';
 import 'register_dog_screen.dart';
+import 'package:provider/provider.dart';              
+import 'package:pet_center/providers/auth_provider.dart';
 
 class SwipeScreen extends StatefulWidget {
   const SwipeScreen({Key? key}) : super(key: key);
@@ -23,68 +25,19 @@ class _SwipeScreenState extends State<SwipeScreen> {
     loadDogs();
   }
 
+  // lib/screens/swipe_screen.dart
+
   Future<void> loadDogs() async {
     setState(() => isLoading = true);
 
-    final list = await db.getDogs();
+    final newList = await db.getDogs();    
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUserId = authProvider.currentUser?.id;
 
-    if (list.isEmpty) {
-      final exampleDogs = [
-        Dog(
-          name: 'Max',
-          photoUrl:
-              'https://images.pexels.com/photos/1458916/pexels-photo-1458916.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-          breed: 'Golden Retriever',
-          sex: 'Macho',
-          age: 2,
-          size: 'Grande',
-          color: 'Dourado',
-          description:
-              'Amigo e brincalhão. Adora bolinhas e passear no parque!',
-          city: 'São Paulo',
-          healthStatus: 'Saudável',
-          vaccinationStatus: 'Vacinado',
-          isCastrated: true, 
-        ),
-        Dog(
-          name: 'Luna',
-          photoUrl:
-              'https://images.pexels.com/photos/58997/example-dog-galloping-meadow-58997.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-          breed: 'SRD (Vira-lata)',
-          sex: 'Fêmea', 
-          age: 1,
-          size: 'Médio',
-          color: 'Caramelo',
-          description:
-              'Dócil e um pouco tímida, mas muito carinhosa quando confia.',
-          city: 'Rio de Janeiro',
-          healthStatus: 'Saudável', 
-          vaccinationStatus: 'Pendente', 
-          isCastrated: false, 
-        ),
-        Dog(
-          name: 'Bolinha',
-          photoUrl:
-              'https://images.pexels.com/photos/3361739/pexels-photo-3361739.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-          breed: 'Pug',
-          age: 4,
-          size: 'Pequeno',
-          color: 'Preto', 
-          sex: 'Macho', 
-          description: 'Um bolinha de pelos roncadora. Adora dormir no colo.',
-          city: 'Belo Horizonte',
-          healthStatus: 'Alergia de pele', 
-          vaccinationStatus: 'Vacinado', 
-          isCastrated: true, 
-        ),
-      ];
-
-      for (final dog in exampleDogs) {
-        await db.insertDog(dog);
-      }
+    if (currentUserId != null) {
+      newList.removeWhere((dog) => dog.userId == currentUserId);
     }
 
-    final newList = await db.getDogs();
     setState(() {
       dogs = newList;
       currentIndex = 0;
@@ -116,11 +69,18 @@ class _SwipeScreenState extends State<SwipeScreen> {
         title: Text('AdopetMatch'),
         actions: [
           IconButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => RegisterDogScreen()),
-            ).then((_) => loadDogs()),
-            icon: Icon(Icons.add),
+            icon: const Icon(Icons.add),
+            onPressed: () async { 
+
+              final bool? foiSalvo = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RegisterDogScreen()),
+              );
+
+              if (foiSalvo == true) {
+                loadDogs();
+              }
+            },
           )
         ],
       ),
@@ -142,8 +102,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
                         child: Padding(
                           padding: const EdgeInsets.all(12.0),
                           child: Dismissible(
-                            key: Key(currentDog.id?.toString() ??
-                                'dog_$currentIndex'),
+                            key: Key('${currentDog.id?.toString() ?? 'dog'}_${DateTime.now().millisecondsSinceEpoch}'),
                             onDismissed: (direction) {
                               final liked =
                                   direction == DismissDirection.startToEnd;

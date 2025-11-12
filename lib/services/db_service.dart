@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/dog.dart';
+import '../models/user.dart';
 
 class DBService {
   Database? _database;
@@ -12,7 +13,7 @@ class DBService {
   }
 
   Future<Database> _initDB() async {
-    String path = join(await getDatabasesPath(), 'adopet_database_v2.db');
+    String path = join(await getDatabasesPath(), 'adopet_database_v3.db');
     return await openDatabase(
       path,
       version: 1,
@@ -21,6 +22,19 @@ class DBService {
   }
 
   Future _onCreate(Database db, int version) async {
+
+    await db.execute('''
+      CREATE TABLE users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        senha TEXT NOT NULL,
+        telefone TEXT, 
+        cidade TEXT,
+        sobre TEXT 
+      )
+    ''');
+
     await db.execute('''
       CREATE TABLE dogs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,7 +49,11 @@ class DBService {
         city TEXT,
         healthStatus TEXT,
         vaccinationStatus TEXT,
-        isCastrated INTEGER NOT NULL DEFAULT 0
+        isCastrated INTEGER NOT NULL DEFAULT 0,
+        latitude REAL,
+        longitude REAL,
+        userId INTEGER,
+        FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
       )
     ''');
     
@@ -54,6 +72,42 @@ class DBService {
         date TEXT
       )
     ''');
+  }
+
+  Future<User> createUser(User user) async {
+    final db = await database;
+    final id = await db.insert('users', user.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    // Retorna o usuário com o novo ID
+    return user.copyWith(id: id);
+  }
+
+  Future<User?> login(String email, String password) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'users',
+      where: 'email = ? AND senha = ?',
+      whereArgs: [email, password],
+    );
+
+    if (maps.isNotEmpty) {
+      return User.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<User?> getUserById(int id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'users',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    if (maps.isNotEmpty) {
+      return User.fromMap(maps.first);
+    }
+    return null;
   }
 
   Future<void> insertDog(Dog dog) async {
