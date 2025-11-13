@@ -18,11 +18,11 @@ class _SwipeScreenState extends State<SwipeScreen> {
   List<Dog> dogs = [];
   int currentIndex = 0;
   bool isLoading = true;
+  bool _isInit = true;  
 
   @override
   void initState() {
     super.initState();
-    loadDogs();
   }
 
   // lib/screens/swipe_screen.dart
@@ -56,6 +56,15 @@ class _SwipeScreenState extends State<SwipeScreen> {
     }
 
     setState(() => currentIndex++);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_isInit) {
+      loadDogs();
+    }
+    _isInit = false; // Garante que só rode uma vez
   }
 
   @override

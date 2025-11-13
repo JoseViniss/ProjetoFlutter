@@ -30,27 +30,21 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Função de Cadastro
   Future<bool> register(User user) async {
     try {
       // Cria o usuário no banco
-      final newUser = await dbService.createUser(user);
-      
-      // Loga automaticamente o novo usuário
-      _currentUser = newUser;
-      notifyListeners(); // Avisa a todas as telas
+      await dbService.createUser(user);
       return true;
       
     } catch (e) {
-      // 'UNIQUE constraint failed: users.email' é um erro comum aqui
       print("Erro no registro: $e");
       return false;
     }
   }
-
   // Função de Logout
   void logout() {
     _currentUser = null;
     notifyListeners(); // Avisa a todas as telas
   }
+
 }

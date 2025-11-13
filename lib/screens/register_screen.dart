@@ -5,6 +5,7 @@ import 'package:pet_center/models/user.dart';
 import 'package:pet_center/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import 'package:pet_center/screens/main_navigation_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -33,54 +34,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _performRegistration() async {
 
-    setState(() => _isLoading = true);
+    // 1. Valida o formulário ANTES de fazer qualquer coisa
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return; // Se o formulário não for válido, PARA AQUI.
+    }
 
-    // 2. Pega o "gerente" AuthProvider
+    setState(() => _isLoading = true);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    // 3. Cria o novo objeto User com os dados
     final newUser = User(
       nome: _nomeController.text,
       email: _emailController.text,
-      senha: _senhaController.text, // Lembrete: no mundo real, use hash!
+      senha: _senhaController.text,
       telefone: _telefoneController.text,
       cidade: _cidadeController.text,
       sobre: _sobreController.text,
     );
 
-    // 4. Tenta registrar
     try {
+      // 2. Tenta registrar (a função que modificamos, que NÃO loga)
       final success = await authProvider.register(newUser);
 
-      if (!success) {
-        // Se o 'register' retornar false (ex: e-mail já existe)
-        if (mounted) { // Garante que a tela ainda existe
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('E-mail já cadastrado. Tente um e-mail diferente.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+      // --- CORREÇÃO DO BUG 2 (MODAL) ---
+      if (success && mounted) {
+        // 3. SE DER SUCESSO, CHAMA O MODAL DE SUCESSO
+        _showSuccessDialog();
+      } else if (!success && mounted) {
+        // 4. Se der erro (ex: e-mail duplicado)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('E-mail já cadastrado. Tente um e-mail diferente.'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-      // Se 'success' for true, o AuthWrapper no main.dart
-      // vai automaticamente nos navegar para a HomeScreen.
-      
+
     } catch (e) {
-      // Captura qualquer outro erro inesperado
       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao cadastrar: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao cadastrar: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
-
     setState(() => _isLoading = false);
   }
-  
+
   @override
   void dispose() {
     // Limpa os controladores quando a tela for destruída
@@ -91,6 +92,62 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _cidadeController.dispose();
     _sobreController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showSuccessDialog() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, 
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Cadastro Realizado!'),
+          content: const SingleChildScrollView(
+            child: Text('Sua conta foi criada com sucesso.\n\nClique em "OK" para entrar.'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () async {
+                // 1. Fecha SÓ o dialog
+                Navigator.of(dialogContext).pop(); 
+
+                setState(() => _isLoading = true); // Mostra um loading
+
+                // 2. Faz o login
+                final success = await authProvider.login(
+                  _emailController.text,
+                  _senhaController.text,
+                );
+
+                setState(() => _isLoading = false); // Para o loading
+
+                // 3. SE O LOGIN DER CERTO...
+                if (success && mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (context) => const MainNavigationScreen(),
+                    ),
+                    (route) => false,
+                  );
+
+                } else if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Falha ao logar automaticamente. Tente da tela de login.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  // Volta para a tela de login
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -162,7 +219,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: const InputDecoration(labelText: 'Telefone (para contato)'),
                   keyboardType: TextInputType.phone,
                   inputFormatters: [_phoneMaskFormatter],
+                
+                  validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Telefone é obrigatório';
+                      }
+                      // Checa se a máscara foi preenchida
+                      if (value.length != '(##) #####-####'.length) {
+                        return 'Telefone incompleto';
+                      }
+                      return null;
+                    },
                 ),
+                
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _cidadeController,

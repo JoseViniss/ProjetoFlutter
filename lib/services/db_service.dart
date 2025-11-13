@@ -188,4 +188,28 @@ class DBService {
     final db = await database;
     return await db.query('adoptions');
   }
+
+  Future<int> countDogsForUser(int userId) async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) FROM dogs WHERE userId = ?',
+      [userId],
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  Future<Map<String, int>> getVaccinationStatsForUser(int userId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> result = await db.rawQuery(
+      'SELECT vaccinationStatus, COUNT(*) as count FROM dogs WHERE userId = ? GROUP BY vaccinationStatus',
+      [userId],
+    );
+
+    final Map<String, int> stats = {};
+    for (var row in result) {
+      stats[row['vaccinationStatus']] = row['count'];
+    }
+    return stats;
+  }
+
 }
