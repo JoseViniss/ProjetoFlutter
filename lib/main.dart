@@ -36,8 +36,41 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'AdopetMatch',
         theme: ThemeData(
-          primarySwatch: Colors.blue,
-          visualDensity: VisualDensity.adaptivePlatformDensity,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFFF1871D), 
+          ),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFFF1871D), 
+            foregroundColor: Colors.white, 
+            elevation: 4,
+            titleTextStyle: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+
+          // 3. Definindo a cor do Botão Flutuante (o '+')
+          floatingActionButtonTheme: const FloatingActionButtonThemeData(
+            backgroundColor: Color(0xFFF1871D), // Laranja no botão
+            foregroundColor: Colors.white, // Ícone '+' em branco
+          ),
+
+          // 4. Definindo a cor da Barra de Navegação
+          bottomNavigationBarTheme: BottomNavigationBarThemeData(
+            selectedItemColor: const Color(0xFFF1871D), // Ícone selecionado Laranja
+            unselectedItemColor: Colors.grey[600], // Ícone não selecionado Cinza
+          ),
+
+          // (Opcional) Botões normais
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF1871D),
+              foregroundColor: Colors.white,
+            ),
+          ),
+
+          useMaterial3: true,
         ),
         home: const AuthWrapper(),
         routes: {

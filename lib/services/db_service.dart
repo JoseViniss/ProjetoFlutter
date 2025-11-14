@@ -212,4 +212,15 @@ class DBService {
     return stats;
   }
 
+  Future<List<Dog>> getDogsForUser(int userId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'dogs',
+      where: 'userId = ?', // Filtra pelo ID do usuário
+      whereArgs: [userId],
+      orderBy: 'name ASC',
+    );
+    return List.generate(maps.length, (i) => Dog.fromMap(maps[i]));
+  }
+
 }

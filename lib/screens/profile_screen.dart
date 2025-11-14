@@ -1,10 +1,11 @@
 // lib/screens/profile_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:pet_center/providers/auth_provider.dart'; // Nosso "gerente"
-import 'package:pet_center/services/db_service.dart';    // Nosso "banco"
+import 'package:pet_center/providers/auth_provider.dart'; 
+import 'package:pet_center/services/db_service.dart';    
 import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart'; // O pacote de Gráficos (BI)
+import 'package:fl_chart/fl_chart.dart'; 
+import 'package:pet_center/screens/my_dogs_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -14,36 +15,10 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // Variáveis para guardar os dados do BI
   int _dogCount = 0;
   Map<String, int> _vaccinationStats = {};
   bool _isLoading = true;
   bool _isInit = true;
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  Future<void> _loadDashboardData() async {
-    // Pega o usuário logado e o banco
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final dbService = Provider.of<DBService>(context, listen: false);
-    final userId = authProvider.currentUser?.id;
-
-    if (userId == null) return; // Segurança
-
-    // Busca os dados no banco
-    final dogCount = await dbService.countDogsForUser(userId);
-    final vacStats = await dbService.getVaccinationStatsForUser(userId);
-
-    // Atualiza a tela
-    setState(() {
-      _dogCount = dogCount;
-      _vaccinationStats = vacStats;
-      _isLoading = false;
-    });
-  }
 
   @override
   void didChangeDependencies() {
@@ -51,17 +26,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_isInit) {
       _loadDashboardData();
     }
-    _isInit = false; // Garante que só rode uma vez
+    _isInit = false;
+  }
+
+  Future<void> _loadDashboardData() async {
+    setState(() => _isLoading = true);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final dbService = Provider.of<DBService>(context, listen: false);
+    final userId = authProvider.currentUser?.id;
+    if (userId == null) return; 
+
+    final dogCount = await dbService.countDogsForUser(userId);
+    final vacStats = await dbService.getVaccinationStatsForUser(userId);
+
+    setState(() {
+      _dogCount = dogCount;
+      _vaccinationStats = vacStats;
+      _isLoading = false;
+    });
+  }
+
+  // --- NOVA FUNÇÃO DE NAVEGAÇÃO ---
+  void _navigateToMyDogs() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const MyDogsScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Pega o "gerente" de auth para ler os dados do usuário
-    // Usamos 'watch' aqui para que a tela reaja a mudanças (como logout)
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.currentUser;
 
-    // Segurança: se o usuário não estiver logado, não mostra nada
     if (user == null) {
       return const Center(child: Text('Erro: Nenhum usuário logado.'));
     }
@@ -70,21 +66,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: const Text('Meu Perfil'),
         actions: [
-          // Botão de Logout
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sair',
-            onPressed: () {
-              // Chama a função de logout do nosso "gerente"
-              authProvider.logout();
-              // O AuthWrapper no main.dart vai nos levar para o Login
-            },
+            onPressed: () => authProvider.logout(),
           )
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+          : SingleChildScrollView( // O SingleChildScrollView agora é SEGURO
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -98,19 +89,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            user.nome,
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                          ),
+                          Text(user.nome, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
                           const SizedBox(height: 16),
                           _buildProfileRow(Icons.email_outlined, user.email),
                           _buildProfileRow(Icons.phone_outlined, user.telefone ?? 'Não informado'),
                           _buildProfileRow(Icons.location_city_outlined, user.cidade ?? 'Não informada'),
                           const Divider(height: 24),
-                          Text(
-                            'Sobre:',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                          ),
+                          Text('Sobre:', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                           const SizedBox(height: 8),
                           Text(user.sobre ?? 'Nenhuma descrição fornecida.'),
                         ],
@@ -126,20 +111,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  
-                  // Estatística 1: Total de Cães
+
                   Card(
                     elevation: 2,
-                    child: ListTile(
-                      leading: Icon(Icons.pets, color: Theme.of(context).primaryColor),
-                      title: Text('$_dogCount', style: Theme.of(context).textTheme.headlineMedium),
-                      subtitle: const Text('Cães cadastrados por você'),
+                    child: InkWell( 
+                      onTap: _navigateToMyDogs,
+                      child: ListTile(
+                        leading: Icon(Icons.pets, color: Theme.of(context).primaryColor),
+                        title: Text('$_dogCount', style: Theme.of(context).textTheme.headlineMedium),
+                        subtitle: const Text('Cães cadastrados por você'),
+                        trailing: const Icon(Icons.arrow_forward_ios), // Seta
+                      ),
                     ),
                   ),
                   
                   const SizedBox(height: 16),
                   
-                  // Estatística 2: Gráfico de Pizza (Vacinação)
                   _buildPieChart(context),
 
                 ],

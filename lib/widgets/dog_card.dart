@@ -1,16 +1,18 @@
+// lib/widgets/dog_card.dart
+
 import 'package:flutter/material.dart';
 import '../models/dog.dart';
 
 class DogCard extends StatelessWidget {
   final Dog dog;
-  
   final VoidCallback? onConfirmAdoption;
+  final VoidCallback? onEdit; // O botão de editar que já adicionamos
 
- 
   const DogCard({
     Key? key,
     required this.dog,
-    this.onConfirmAdoption, 
+    this.onConfirmAdoption,
+    this.onEdit,
   }) : super(key: key);
 
   @override
@@ -18,24 +20,24 @@ class DogCard extends StatelessWidget {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      clipBehavior: Clip.antiAlias, 
+      clipBehavior: Clip.antiAlias,
+      
+      // --- VOLTAMOS À LÓGICA ORIGINAL DO 'Expanded' ---
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
+          // 1. A IMAGEM (com flex: 6)
           Expanded(
-            flex: 6,
+            flex: 6, // Dá 60% da altura para a imagem
             child: Container(
               width: double.infinity,
               child: Image.network(
                 dog.photoUrl,
                 fit: BoxFit.cover,
-                
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
-                  return Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator());
                 },
-                
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
                     color: Colors.grey[200],
@@ -47,21 +49,23 @@ class DogCard extends StatelessWidget {
             ),
           ),
           
+          // 2. O TEXTO (com flex: 4)
           Expanded(
-            flex: 4,
+            flex: 4, // Dá 40% da altura para o texto e botões
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween, // Empurra o conteúdo
                 children: [
-                 
+                  
+                  // Bloco de Título e Idade
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         dog.name,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
@@ -74,18 +78,22 @@ class DogCard extends StatelessWidget {
                     ],
                   ),
                   
+                  // Bloco de tags
                   Text(
                     '${dog.breed}, ${dog.sex}, ${dog.size}, ${dog.color}',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   
+                  // Bloco de descrição
                   Text(
                     dog.description,
-                    style: TextStyle(fontSize: 14),
+                    style: const TextStyle(fontSize: 14),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                 
+                  
+                  // Bloco de chips de saúde
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
@@ -100,18 +108,33 @@ class DogCard extends StatelessWidget {
                     ],
                   ),
 
-                  
+                  // --- NOSSOS BOTÕES ---
+                  // (Sem 'Spacer', pois o mainAxisAlignment já faz o trabalho)
                   if (onConfirmAdoption != null) ...[
-                    Spacer(), 
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: onConfirmAdoption,
-                        icon: Icon(Icons.check_circle_outline),
-                        label: Text('Confirmar Adoção'),
+                        icon: const Icon(Icons.check_circle_outline),
+                        label: const Text('Confirmar Adoção'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Theme.of(context).primaryColor,
                           foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  if (onEdit != null) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: onEdit,
+                        icon: const Icon(Icons.edit_outlined),
+                        label: const Text('Editar Anúncio'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Theme.of(context).primaryColor,
+                          side: BorderSide(color: Theme.of(context).primaryColor),
                         ),
                       ),
                     ),
@@ -125,13 +148,12 @@ class DogCard extends StatelessWidget {
     );
   }
 
-  
   Widget _buildInfoTag(String text, IconData icon, Color color) {
     return Chip(
       avatar: Icon(icon, color: color, size: 16),
-      label: Text(text, style: TextStyle(fontSize: 10)),
+      label: Text(text, style: const TextStyle(fontSize: 10)),
       backgroundColor: color.withOpacity(0.1),
-      labelPadding: EdgeInsets.symmetric(horizontal: 4),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 4),
       padding: EdgeInsets.zero,
     );
   }

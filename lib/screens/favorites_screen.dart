@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/db_service.dart';
 import '../models/dog.dart';
 import '../widgets/dog_card.dart';
+import 'package:pet_center/screens/dog_detail_screen.dart';
 
 
 class FavoritesScreen extends StatefulWidget {
@@ -36,31 +37,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       favorites = list;
       isLoading = false;
     });
-  }
-
-  Future<void> confirmAdoption(Dog dog) async {
-    final nameController = TextEditingController();
-    final res = await showDialog<String>(
-      context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: Text('Confirmar adoção de ${dog.name}'),
-          content: TextField(
-            controller: nameController,
-            decoration: const InputDecoration(labelText: 'Nome do adotante'),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, null), child: const Text('Cancelar')),
-            TextButton(onPressed: () => Navigator.pop(context, nameController.text), child: const Text('Confirmar')),
-          ],
-        );
-      },
-    );
-    if (res != null && res.isNotEmpty) {
-      if (dog.id == null) return; 
-      await db.markAdopted(dog.id!, res); 
-      await loadFavorites(); 
-    }
   }
 
   @override
@@ -117,16 +93,22 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                        
-                        child: SizedBox(
-                          height: 350, 
-                          child: DogCard(
-                            dog: dog,
-                            
-                            onConfirmAdoption: () => confirmAdoption(dog), 
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => DogDetailScreen(dog: dog),
+                              ),
+                            );
+                          },
+                          child: SizedBox(
+                            height: 480,
+                            child: DogCard(
+                              dog: dog,
+                            ),
                           ),
                         ),
-                      ),
+                      ),  
                     );
                   },
                 ),
