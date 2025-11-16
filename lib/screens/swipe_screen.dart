@@ -30,19 +30,37 @@ class _SwipeScreenState extends State<SwipeScreen> {
   Future<void> loadDogs() async {
     setState(() => isLoading = true);
 
-    final newList = await db.getDogs();    
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final currentUserId = authProvider.currentUser?.id;
+    try {
+      // 1. Pega o ID do usuário logado
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final currentUserId = authProvider.currentUser?.id;
 
-    if (currentUserId != null) {
-      newList.removeWhere((dog) => dog.userId == currentUserId);
+      // 2. Pega TODAS as listas de uma vez
+      final allDogs = await db.getDogs();
+      final favIds = await db.getFavoriteIds(); // Os IDs que eu já favoritei
+      
+      // 3. A Mágica do Filtro
+      final filteredList = allDogs.where((dog) {
+        // Regra 1: O cão NÃO é meu (não foi cadastrado por mim)
+        final isNotMyDog = dog.userId != currentUserId;
+        
+        // Regra 2: O cão NÃO está na minha lista de favoritos
+        final isNotFavorited = !favIds.contains(dog.id!);
+        
+        // Só mostra se as DUAS regras forem verdadeiras
+        return isNotMyDog && isNotFavorited;
+      }).toList();
+
+      setState(() {
+        dogs = filteredList;
+        currentIndex = 0;
+        isLoading = false; 
+      });
+
+    } catch (e) {
+      print("Erro ao carregar cães: $e");
+      setState(() => isLoading = false);
     }
-
-    setState(() {
-      dogs = newList;
-      currentIndex = 0;
-      isLoading = false; 
-    });
   }
 
   void _nextCard(bool liked) async {

@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Título de boas-vindas
                   const Text(
-                    "Bem-vindo ao Doguinho!",
+                    "Bem-vindo ao Petmatch!",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 28,
