@@ -6,7 +6,6 @@ import 'package:pet_center/services/db_service.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:pet_center/screens/my_dogs_screen.dart';
-import 'package:pet_center/screens/location_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -139,27 +138,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         subtitle: const Text('Cães cadastrados por você'),
                         trailing: const Icon(Icons.arrow_forward_ios), // Seta
                       ),
-                    ),
-                  ),
-
-                  Text(
-                    'Ferramentas',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  Card(
-                    elevation: 2,
-                    child: ListTile(
-                      leading: Icon(Icons.map_outlined, color: Theme.of(context).primaryColor),
-                      title: const Text('Testar Geolocalização (API Nominatim)'),
-                      subtitle: const Text('Ver seu endereço atual (extra)'),
-                      trailing: const Icon(Icons.arrow_forward_ios),
-                      onTap: () {
-                        // Navega para a tela do seu parceiro
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (context) => const LocationScreen()),
-                        );
-                      },
                     ),
                   ),
 

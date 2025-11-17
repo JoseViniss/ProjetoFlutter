@@ -6,6 +6,9 @@ import 'package:pet_center/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:pet_center/screens/main_navigation_screen.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -24,6 +27,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _telefoneController = TextEditingController();
   final _cidadeController = TextEditingController();
   final _sobreController = TextEditingController();
+  bool _isLocating = false;
+  bool isLoading = false;
+  String? addressMessage;
+  String locationMessage = "Pressione o botão para ver onde você está";
 
   bool _isLoading = false;
 
@@ -150,6 +157,98 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  Future<void> _getAddressFromApi(double lat, double long) async {
+    try {
+      final url = Uri.parse(
+          'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$long&zoom=18&addressdetails=1');
+
+      final response = await http.get(url, headers: {
+        'User-Agent': 'com.example.petmatch/1.0'
+      });
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final address = data['address'];
+        final city = address['city'] ?? address['town'] ?? address['municipality'] ?? '';
+        final state = address['state'] ?? '';
+
+        setState(() {
+          _cidadeController.text = "$city - $state"; 
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível buscar o nome da cidade.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() => _isLocating = true);
+
+    // O bloco 'try' vai TENTAR fazer tudo
+    try {
+      // 1. Checagem de serviço
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("GPS desligado. Ligue-o para continuar."), backgroundColor: Colors.red),
+        );
+        // Se o GPS está desligado, paramos o loading e saímos
+        setState(() => _isLocating = false); 
+        return;
+      }
+
+      // 2. Checagem de permissão
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Sem permissão de GPS."), backgroundColor: Colors.red),
+          );
+          setState(() => _isLocating = false); // Paramos o loading e saímos
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Permissão negada permanentemente."), backgroundColor: Colors.red),
+        );
+        setState(() => _isLocating = false); // Paramos o loading e saímos
+        return;
+      } 
+
+      // 3. Se tudo deu certo, Tenta pegar o GPS
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+        timeLimit: const Duration(seconds: 10), // Aumentei o tempo limite
+      );
+
+      // 4. Se pegou o GPS, chama a API de Endereço
+      await _getAddressFromApi(position.latitude, position.longitude);
+
+    } catch (e) {
+      // 5. Se QUALQUER coisa acima falhar (GPS, permissão, API),
+      // o 'catch' vai pegar e mostrar o erro.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erro ao localizar: ${e.toString()}"), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      // 6. A MÁGICA: Não importa se o 'try' deu certo ou se o 'catch' 
+      // pegou um erro, o 'finally' VAI RODAR e garantir que o 
+      // loading pare.
+      if (mounted) {
+        setState(() => _isLocating = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -213,7 +312,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // --- Campos Opcionais (mas importantes para o perfil) ---
                 TextFormField(
                   controller: _telefoneController,
                   decoration: const InputDecoration(labelText: 'Telefone (para contato)'),
@@ -237,6 +335,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _cidadeController,
                   decoration: const InputDecoration(labelText: 'Cidade / Estado'),
                 ),
+
+                _isLocating
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    : OutlinedButton.icon(
+                        icon: const Icon(Icons.my_location),
+                        label: const Text('Usar minha localização para preencher'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Theme.of(context).primaryColor,
+                          side: BorderSide(color: Theme.of(context).primaryColor),
+                        ),
+                        onPressed: _getCurrentLocation,
+                      ),
+
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _sobreController,
